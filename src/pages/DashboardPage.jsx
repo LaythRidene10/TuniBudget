@@ -8,7 +8,7 @@ import {
   getSpendingByCategory,
   getTransactions,
 } from "../services/index.js";
-import { currentMonthKey, formatDay, monthLabel, monthName } from "../utils/dates.js";
+import { currentMonthKey, formatDay, formatDayYear, monthLabel, monthName } from "../utils/dates.js";
 import { formatMillimes, formatTnd } from "../utils/money.js";
 import { StarPattern } from "../components/StarMark.jsx";
 import { Amount, BigMoney } from "../components/Money.jsx";
@@ -17,6 +17,7 @@ import CategoryBars from "../components/CategoryBars.jsx";
 import BudgetStatus from "../components/BudgetStatus.jsx";
 import Meter from "../components/Meter.jsx";
 import { EmptyState, ErrorState, Loading } from "../components/StateMessage.jsx";
+import Icon from "../components/Icon.jsx";
 
 const RANGES = [30, 90];
 
@@ -80,6 +81,30 @@ export default function DashboardPage({ user, version, goTo }) {
           </button>
         </div>
       </div>
+
+      {user.role === "premium" && (
+        <p className="notice notice--ok" role="status" style={{ marginBottom: 20 }}>
+          <Icon name="check" />
+          <span>
+            Premium is active{user.subscription ? " until " + formatDayYear(user.subscription.expiresAt) : ""}.
+            <button type="button" className="link-button" style={{ marginLeft: 8 }} onClick={() => goTo("premium")}>
+              Manage subscription
+            </button>
+          </span>
+        </p>
+      )}
+      {user.role === "user" && (
+        <p className="notice notice--info" role="status" style={{ marginBottom: 20 }}>
+          <Icon name="info" />
+          <span>
+            You are on the free plan.
+            <button type="button" className="link-button" style={{ marginLeft: 8 }} onClick={() => goTo("premium")}>
+              Upgrade to Premium
+            </button>{" "}
+            for advanced analytics, reports and savings goals.
+          </span>
+        </p>
+      )}
 
       <div className="columns columns--stretch">
         <section className="hero" aria-label="Total balance">

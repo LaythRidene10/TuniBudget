@@ -552,6 +552,30 @@ select.input option:checked {
   background: var(--green-tint);
   color: var(--green);
 }
+.badge--muted {
+  background: var(--chip);
+  color: var(--muted);
+}
+.badge--premium {
+  background: linear-gradient(135deg, var(--gold), var(--cta));
+  color: #2a2100;
+}
+.badge--premium.badge--ok {
+  background: var(--green-tint);
+  color: var(--green);
+}
+.badge--premium.badge--muted {
+  background: var(--chip);
+  color: var(--muted);
+}
+.badge--admin {
+  background: var(--tint);
+  color: var(--blue);
+}
+.badge--user {
+  background: var(--chip);
+  color: var(--muted);
+}
 
 /* ---------- meter ---------- */
 .meter {

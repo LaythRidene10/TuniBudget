@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { getAdminUsers, getAuditLogs, getSecuritySummary, revokeUserSessions, setUserDisabled } from "../services/index.js";
 import { formatDayYear } from "../utils/dates.js";
 import Icon from "../components/Icon.jsx";
+import AdminSubscriptions from "../components/AdminSubscriptions.jsx";
 import { EmptyState, ErrorState, Loading } from "../components/StateMessage.jsx";
 
 const LEVELS = [
@@ -200,6 +201,8 @@ export default function AdminPage({ user, version, onChange, notify }) {
           </table>
         </div>
       </section>
+
+      <AdminSubscriptions version={version} users={users} notify={notify} onChange={onChange} />
 
       <section className="panel columns--gap-top" aria-labelledby="admin-log-title">
         <div className="panel__head">

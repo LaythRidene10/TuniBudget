@@ -13,6 +13,13 @@ const TITLES = {
 
 const SUBMIT_LABELS = { login: "Log in", register: "Create my account", forgot: "Send the reset link", reset: "Save my new password" };
 
+// Development only: the seeder creates these accounts with a known password.
+const DEMO_ACCOUNTS = [
+  { label: "Admin demo", email: "admin@demo.com", password: "AdminDemo123!" },
+  { label: "Premium demo", email: "premium@demo.com", password: "PremiumDemo123!" },
+  { label: "Free user demo", email: "user@demo.com", password: "UserDemo123!" },
+];
+
 // The reset link looks like https://app/?reset=<token>. Read once when the page opens.
 function tokenFromUrl() {
   return new URLSearchParams(window.location.search).get("reset") || "";
@@ -76,12 +83,12 @@ export default function AuthPage({ theme, onThemeToggle, onAuthenticated }) {
     setBusy(false);
   }
 
-  async function tryDemo() {
+  async function tryDemo(email, password) {
     setError("");
     setNotice("");
     setBusy(true);
     try {
-      const result = await login("amine@tunibudget.tn", "demo1234");
+      const result = await login(email, password);
       onAuthenticated(result.user);
     } catch (err) {
       setError(err.message);
@@ -174,10 +181,16 @@ export default function AuthPage({ theme, onThemeToggle, onAuthenticated }) {
 
           {showDemoLogin && (
             <>
-              <button type="button" className="btn btn--block" onClick={tryDemo} disabled={busy}>
-                Try the demo account
-              </button>
-              <p className="auth__demo-note">Uses the seeded Amine demo profile. Run <code>npm run seed</code> first.</p>
+              <div className="auth__demo-grid">
+                {DEMO_ACCOUNTS.map((account) => (
+                  <button key={account.email} type="button" className="btn btn--small" onClick={() => tryDemo(account.email, account.password)} disabled={busy}>
+                    {account.label}
+                  </button>
+                ))}
+              </div>
+              <p className="auth__demo-note">
+                Demo accounts are created by <code>npm run seed:demo</code>. Never enabled in production.
+              </p>
             </>
           )}
           {isLogin && (

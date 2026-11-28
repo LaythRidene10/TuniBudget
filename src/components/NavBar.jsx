@@ -7,7 +7,10 @@ const TABS = [
   { id: "transfer", label: "Transfer" },
   { id: "history", label: "History" },
   { id: "budgets", label: "Budgets" },
+  { id: "premium", label: "Premium", premium: true },
 ];
+
+const ROLE_LABELS = { admin: "Admin", premium: "Premium", user: "Free" };
 
 function initials(fullName) {
   return fullName
@@ -33,11 +36,12 @@ export default function NavBar({ user, page, theme, onThemeToggle, onNavigate, o
             <button
               key={tab.id}
               type="button"
-              className="tab"
+              className={"tab" + (tab.premium ? " tab--premium" : "")}
               aria-current={page === tab.id ? "page" : undefined}
               onClick={() => onNavigate(tab.id)}
             >
               {tab.label}
+              {tab.premium && <span className="tab__spark" aria-hidden="true">✦</span>}
             </button>
           ))}
         </nav>
@@ -46,6 +50,7 @@ export default function NavBar({ user, page, theme, onThemeToggle, onNavigate, o
             {initials(user.fullName)}
           </span>
           <span className="who__name">{user.fullName}</span>
+          <span className={"badge badge--role badge--" + (user.role || "user")}>{ROLE_LABELS[user.role] || "Free"}</span>
           <ThemeToggle theme={theme} onToggle={onThemeToggle} />
           <button type="button" className="link-button muted" onClick={onLogout} style={{ fontWeight: 500 }}>
             Log out

@@ -75,6 +75,11 @@ export function buildConfig(env) {
   if (Boolean(tlsCertFile) !== Boolean(tlsKeyFile)) errors.push("Set both TLS_CERT_FILE and TLS_KEY_FILE, or neither.");
   if (tlsCertFile && !existsSync(tlsCertFile)) errors.push("TLS_CERT_FILE points to a file that does not exist.");
   if (tlsKeyFile && !existsSync(tlsKeyFile)) errors.push("TLS_KEY_FILE points to a file that does not exist.");
+  // No payment provider is connected in this project. "test" confirms a payment immediately and
+  // labels every payment record as test data; "disabled" closes the checkout entirely.
+  const paymentMode = read("PAYMENT_MODE") || "test";
+  if (!["test", "disabled"].includes(paymentMode)) errors.push("PAYMENT_MODE must be test or disabled.");
+
   const trustProxy = int(env, "TRUST_PROXY", 0, { min: 0, max: 5 }, errors);
   if (isProduction && !tlsCertFile && trustProxy === 0) {
     errors.push("In production, HTTPS is required: set TLS_CERT_FILE/TLS_KEY_FILE, or TRUST_PROXY=1 when a host or proxy terminates HTTPS for you.");
@@ -91,6 +96,7 @@ export function buildConfig(env) {
     appUrl: appOrigin,
     tlsCertFile,
     tlsKeyFile,
+    paymentMode,
     trustProxy,
     sessionHours: int(env, "SESSION_TTL_HOURS", 8, { min: 1, max: 72 }, errors),
     sessionIdleMinutes: int(env, "SESSION_IDLE_MINUTES", 30, { min: 5, max: 1440 }, errors),
@@ -110,6 +116,9 @@ export function buildConfig(env) {
   }
   if (isProduction && !config.alertWebhookUrl) {
     warnings.push("ALERT_WEBHOOK_URL is empty: suspicious activity is only written to the logs and the database.");
+  }
+  if (isProduction && config.paymentMode === "test") {
+    warnings.push("PAYMENT_MODE=test: subscription payments are simulated. Connect a real provider before charging users.");
   }
 
   return { config, errors, warnings };

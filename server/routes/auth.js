@@ -9,13 +9,26 @@ import { loginLimiter, registerLimiter, resetLimiter } from "../security/rateLim
 import { endAllSessions, endSession, startSession } from "../security/sessions.js";
 import { requireAuth } from "../security/middleware.js";
 import { newId, randomToken, sha256 } from "../security/tokens.js";
+import { subscriptionState } from "../subscriptions.js";
 import * as v from "../validate.js";
 
 const MAX_FAILURES = 5;
 const LOCK_MINUTES = 15;
 
-export function publicUser(user) {
-  return { _id: user._id, fullName: user.fullName, email: user.email, role: user.role || "user" };
+// The role sent to the browser is a display value derived from the database on every call:
+// admins keep the admin role, a user with an active subscription is "premium", the others "user".
+export async function publicUser(user) {
+  const state = await subscriptionState(user._id);
+  const baseRole = user.role === "admin" ? "admin" : "user";
+  return {
+    _id: user._id,
+    fullName: user.fullName,
+    email: user.email,
+    role: baseRole === "admin" ? "admin" : state.isPremium ? "premium" : "user",
+    baseRole,
+    isPremium: state.isPremium,
+    subscription: state.subscription,
+  };
 }
 
 // Failed logins are counted per email (even for emails that do not exist, so the lock does not
@@ -82,7 +95,7 @@ export function authRoutes(config) {
     });
     await audit(req, "user_registered", { userId: user._id });
     await startSession(req, res, user);
-    res.status(201).json({ user: publicUser(user) });
+    res.status(201).json({ user: await publicUser(user) });
   });
 
   router.post("/login", loginLimiter, async (req, res) => {
@@ -116,7 +129,7 @@ export function authRoutes(config) {
     await collections.users.updateOne({ _id: user._id }, { $set: { lastLoginAt: new Date() } });
     await startSession(req, res, user);
     await audit(req, "login_succeeded", { userId: user._id });
-    res.json({ user: publicUser(user) });
+    res.json({ user: await publicUser(user) });
   });
 
   router.post("/logout", async (req, res) => {
@@ -124,8 +137,8 @@ export function authRoutes(config) {
     res.status(204).end();
   });
 
-  router.get("/me", requireAuth, (req, res) => {
-    res.json({ user: publicUser(req.user) });
+  router.get("/me", requireAuth, async (req, res) => {
+    res.json({ user: await publicUser(req.user) });
   });
 
   // Step 1: ask for a link. The answer is always the same, so nobody can test which emails exist.

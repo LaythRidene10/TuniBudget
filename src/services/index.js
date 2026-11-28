@@ -7,4 +7,33 @@ export { getCategories, getTransactions, addOperation } from "./transactions.js"
 export { planTransferSteps, transfer } from "./transfers.js";
 export { getBudgets, setBudget, removeBudget } from "./budgets.js";
 export { getMonthSummary, getSpendingByCategory, getBalanceHistory } from "./analytics.js";
-export { getSecuritySummary, getAdminUsers, getAuditLogs, revokeUserSessions, setUserDisabled } from "./admin.js";
+export {
+  getSecuritySummary,
+  getAdminUsers,
+  getAuditLogs,
+  revokeUserSessions,
+  setUserDisabled,
+  getAdminSubscriptionStats,
+  getAdminSubscriptions,
+  suspendAdminSubscription,
+  activateAdminSubscription,
+  deactivateAdminSubscription,
+  grantSubscription,
+  getAdminPlans,
+  createAdminPlan,
+  updateAdminPlan,
+} from "./admin.js";
+export { getSubscriptionPlans, getMySubscription, checkout, renewSubscription, cancelSubscription } from "./subscriptions.js";
+export {
+  getPremiumAnalytics,
+  getYearComparison,
+  getInsights,
+  searchTransactions,
+  getReport,
+  downloadReport,
+  getGoals,
+  createGoal,
+  updateGoal,
+  contributeToGoal,
+  removeGoal,
+} from "./premium.js";

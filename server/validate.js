@@ -6,7 +6,7 @@ import { ApiError, validationError } from "./errors.js";
 export const MAX_MILLIMES = 1_000_000_000_000; // 1 billion TND, far above any real balance
 const CONTROL_CHARS = /[\u0000-\u001F\u007F\u2028\u2029]/;
 const HTML_CHARS = /[<>]/;
-const ID_PATTERN = /^[a-z]{3}_[A-Za-z0-9_-]{1,64}$/;
+const ID_PATTERN = /^[a-z]{3,4}_[A-Za-z0-9_-]{1,64}$/;
 const EMAIL_PATTERN = /^[^\s@<>()[\]\\,;:"]+@[^\s@<>()[\]\\,;:"]+\.[A-Za-z]{2,}$/;
 const COMMON_PASSWORDS = new Set([
   "password", "password1", "password123", "12345678", "123456789", "1234567890", "qwerty123",
@@ -80,6 +80,19 @@ export function optionalMillimes(value) {
 export function oneOf(value, allowed, message) {
   if (!allowed.includes(value)) throw validationError(message);
   return value;
+}
+
+/** A whole number from a JSON body (plan days, sort order…). */
+export function integer(value, { min, max, message }) {
+  const number = typeof value === "string" && /^\d{1,6}$/.test(value) ? Number(value) : value;
+  if (!Number.isSafeInteger(number) || number < min || number > max) throw validationError(message);
+  return number;
+}
+
+/** A short list of plan benefits. */
+export function featureList(value, message = "Add 1 to 10 benefits, each 2 to 120 characters.") {
+  if (!Array.isArray(value) || value.length < 1 || value.length > 10) throw validationError(message);
+  return value.map((item) => text(item, { min: 2, max: 120, message }));
 }
 
 export function bool(value) {

@@ -68,6 +68,17 @@
   color: var(--cta-ink);
   font-weight: 600;
 }
+.tab--premium {
+  gap: 6px;
+}
+.tab__spark {
+  color: var(--gold);
+  font-size: 12px;
+  line-height: 1;
+}
+.tab--premium[aria-current="page"] .tab__spark {
+  color: var(--cta-ink);
+}
 
 .who {
   display: flex;

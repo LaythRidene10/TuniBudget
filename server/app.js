@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import express from "express";
 import helmet from "helmet";
 import { errorHandler, sendError } from "./errors.js";
-import { csrfGuard, injectionGuard, noStore, requestId, requireAdmin, requireAuth, requireHttps } from "./security/middleware.js";
+import { csrfGuard, injectionGuard, noStore, requestId, requireAdmin, requireAuth, requireHttps, requirePremium } from "./security/middleware.js";
 import { apiLimiter } from "./security/rateLimits.js";
 import { authRoutes } from "./routes/auth.js";
 import { accountRoutes } from "./routes/accounts.js";
@@ -13,6 +13,8 @@ import { transferRoutes } from "./routes/transfers.js";
 import { budgetRoutes } from "./routes/budgets.js";
 import { analyticsRoutes } from "./routes/analytics.js";
 import { adminRoutes } from "./routes/admin.js";
+import { subscriptionRoutes } from "./routes/subscriptions.js";
+import { premiumRoutes } from "./routes/premium.js";
 
 const DIST = fileURLToPath(new URL("../dist", import.meta.url));
 
@@ -61,6 +63,8 @@ export function createApp(config) {
   app.use("/api/transfers", requireAuth, transferRoutes());
   app.use("/api/budgets", requireAuth, budgetRoutes());
   app.use("/api/analytics", requireAuth, analyticsRoutes());
+  app.use("/api/subscriptions", requireAuth, subscriptionRoutes(config));
+  app.use("/api/premium", requireAuth, requirePremium, premiumRoutes());
   app.use("/api/admin", requireAuth, requireAdmin(config), adminRoutes());
   app.use("/api", (req, res) => sendError(res, "NOT_FOUND", "This API route does not exist."));
 

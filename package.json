@@ -15,6 +15,8 @@
     "preview": "vite preview",
     "start": "node server/index.js",
     "seed": "node server/scripts/seed.js",
+    "seed:demo": "node server/scripts/seed-demo.js",
+    "migrate": "node server/scripts/migrate.js",
     "make-admin": "node server/scripts/make-admin.js",
     "check-env": "node server/scripts/check-env.js",
     "test": "node --test server/tests/*.test.js",

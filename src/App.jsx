@@ -10,6 +10,7 @@ import TransferPage from "./pages/TransferPage.jsx";
 import HistoryPage from "./pages/HistoryPage.jsx";
 import BudgetsPage from "./pages/BudgetsPage.jsx";
 import AdminPage from "./pages/AdminPage.jsx";
+import PremiumPage from "./pages/PremiumPage.jsx";
 
 const PAGE_TITLES = {
   dashboard: "Dashboard",
@@ -17,6 +18,7 @@ const PAGE_TITLES = {
   transfer: "Transfer",
   history: "History",
   budgets: "Budgets",
+  premium: "Premium",
   admin: "Admin",
 };
 
@@ -66,6 +68,12 @@ export default function App() {
     refresh();
   }
 
+  // A subscription change alters the role shown in the navigation; reload the user from the API.
+  function handleUserChange(nextUser) {
+    if (nextUser) setUser(nextUser);
+    refresh();
+  }
+
   async function handleLogout() {
     await logout().catch(() => {});
     setToast(null);
@@ -75,7 +83,7 @@ export default function App() {
   if (checking) return <Loading label="Opening TuniBudget" />;
   if (!user) return <AuthPage theme={theme} onThemeToggle={() => setTheme(theme === "light" ? "dark" : "light")} onAuthenticated={handleAuthenticated} />;
 
-  const shared = { user, version, onChange: refresh, notify, goTo: setPage };
+  const shared = { user, version, onChange: refresh, notify, goTo: setPage, onUserChange: handleUserChange };
 
   return (
     <>
@@ -89,6 +97,7 @@ export default function App() {
         {page === "transfer" && <TransferPage {...shared} />}
         {page === "history" && <HistoryPage {...shared} />}
         {page === "budgets" && <BudgetsPage {...shared} />}
+        {page === "premium" && <PremiumPage {...shared} />}
         {page === "admin" && user.role === "admin" && <AdminPage {...shared} />}
       </main>
       <Toast toast={toast} onClose={() => setToast(null)} />

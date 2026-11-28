@@ -33,7 +33,9 @@ You need [Node.js](https://nodejs.org/) 20.12 or newer and a MongoDB database **
 npm install
 cp .env.example .env      # then fill in MONGODB_URI and SESSION_SECRET
 npm run check-env         # checks the .env without starting anything
+npm run migrate           # creates the subscription collections, indexes and default plans
 npm run seed              # loads the demo data into MongoDB
+npm run seed:demo         # creates/refreshes the three role demo accounts (admin, premium, free)
 npm run project           # starts the API (port 4000) and the app (http://localhost:5173)
 ```
 
@@ -51,6 +53,8 @@ Other scripts:
 | --- | --- |
 | `npm run build` | production build of the front-end into `dist/` |
 | `npm start` | starts the API alone; it also serves `dist/` (production) |
+| `npm run migrate` | non-destructive migration: new collections, indexes and the two default plans |
+| `npm run seed:demo` | creates/refreshes only the three role demo accounts (refused in production) |
 | `npm run seed -- --reset` | wipes the app's collections and reloads the demo data (refused in production) |
 | `npm run make-admin -- email` | gives the admin role to a registered user (`--remove` to take it back) |
 | `npm test` | unit tests of the security building blocks |
@@ -58,16 +62,19 @@ Other scripts:
 
 ### Demo accounts
 
-Password for both: `demo1234`
+The three role accounts are created by `npm run seed:demo` (development only):
 
-| Email | Data |
-| --- | --- |
-| `amine@tunibudget.tn` | 3 accounts, 4 months of history |
-| `salma@tunibudget.tn` | 2 accounts |
+| Role | Email | Password | What it shows |
+| --- | --- | --- | --- |
+| Admin | `admin@demo.com` | `AdminDemo123!` | Admin tab, security log, user management, subscription management and plan pricing |
+| Premium | `premium@demo.com` | `PremiumDemo123!` | Active yearly subscription, premium analytics, reports, goals and advanced search |
+| Free user | `user@demo.com` | `UserDemo123!` | Normal budgeting; premium routes are refused by the server until the user upgrades |
 
-**Admin login (development only):** `admin@tunibudget.tn` with password `admin1234`. Admins see an extra **Admin** tab with the security activity, the user list (log a user out everywhere, disable or enable an account) and the security log. To make your own account an admin, register it, then run `npm run make-admin -- you@example.com` and log in again.
+The seeder replaces only these three users and their accounts, transactions, budgets, goals, subscriptions, payments and events. Real users are never touched, and the script refuses to run in production.
 
-In development, **Try the demo account** on the login screen signs in as Amine using the seeded demo data. Run `npm run seed` first; this loads the demo data into your development database. The app opens in light mode by default, and the theme toggle can switch to dark mode.
+The older `npm run seed` accounts (`amine@tunibudget.tn` and `salma@tunibudget.tn`, password `demo1234`) still work. In development the login screen also shows one button per role demo account. The app opens in light mode by default, and the theme toggle can switch to dark mode.
+
+**Admin accounts** see an extra **Admin** tab with the security activity, the user list, subscription statistics and management, and plan pricing. To make your own account an admin, register it, then run `npm run make-admin -- you@example.com` and log in again.
 
 In development, "Forgot your password?" prints the reset link in the server console instead of sending an email.
 
@@ -94,7 +101,13 @@ In development, "Forgot your password?" prints the reset link in the server cons
 | **Admin routes** | `/api/admin/*` needs a logged-in user whose role, read from the database on every request, is `admin`, and optionally an IP from `ADMIN_IP_ALLOWLIST`. Others get a 404. Admins are created only from the command line (`npm run make-admin`). Every admin request is logged. |
 | **Headers and errors** | Helmet security headers, `X-Powered-By` removed, `Cache-Control: no-store` on the API, 10 kB body limit, request timeouts, and errors never send a stack trace to the browser. |
 
-Admin endpoints: `GET /api/admin/security-summary`, `GET /api/admin/audit-logs?level=&event=&page=`, `GET /api/admin/users`, `POST /api/admin/users/:id/revoke-sessions`, `POST /api/admin/users/:id/disable`, `POST /api/admin/unlock-login`.
+Admin endpoints: `GET /api/admin/security-summary`, `GET /api/admin/audit-logs?level=&event=&page=`, `GET /api/admin/users`, `POST /api/admin/users/:id/revoke-sessions`, `POST /api/admin/users/:id/disable`, `POST /api/admin/unlock-login`, `GET /api/admin/subscriptions/stats`, `GET /api/admin/subscriptions`, `POST /api/admin/subscriptions/:id/suspend|activate|deactivate`, `POST /api/admin/users/:id/subscription`, `GET|POST /api/admin/plans`, `PATCH /api/admin/plans/:id`.
+
+Subscription endpoints: `GET /api/subscriptions/plans`, `GET /api/subscriptions/me`, `POST /api/subscriptions/checkout`, `POST /api/subscriptions/renew`, `POST /api/subscriptions/cancel`.
+
+Premium endpoints (server-checked on every call): `GET /api/premium/analytics`, `GET /api/premium/comparison`, `GET /api/premium/insights`, `GET /api/premium/search`, `GET /api/premium/reports`, `GET /api/premium/reports/download`, and `GET|POST|PATCH|DELETE /api/premium/goals`.
+
+**Premium access** is read from the `subscriptions` collection, never from the browser: a subscription with status `active` or `cancelled` and `expiresAt` in the future. Cancelling stops the renewal but keeps access until the end date; expiry is processed on the next premium check. The display role (`premium`) is derived from that state, while `users.role` stays `admin` or `user`. With `PAYMENT_MODE=test` (the default) checkout simulates a successful payment and stores every payment with `testMode: true`.
 
 **Before going live**, connect an email provider in `server/mailer.js` (reset emails are only printed in development), and run `npm run audit:deps` regularly.
 
@@ -118,7 +131,7 @@ The transfer runs in `server/routes/transfers.js` as one MongoDB multi-document 
 
 ```
 index.html
-package.json              scripts: project, build, start, seed, make-admin, check-env, test
+package.json              scripts: project, build, start, migrate, seed, seed:demo, make-admin, check-env, test
 vite.config.js            forwards /api to the API in development
 .env.example              every environment variable, documented (copy to .env)
 scripts/dev.js            starts the API and Vite together
@@ -132,8 +145,9 @@ server/
   idempotency.js          one request = one money movement
   mailer.js               password reset email
   security/               password.js, sessions.js, tokens.js, middleware.js, rateLimits.js, audit.js
-  routes/                 auth, accounts, transactions, transfers, budgets, analytics, admin
-  scripts/                seed.js, make-admin.js, check-env.js
+  subscriptions.js        plans, premium state, expiry handling
+  routes/                 auth, accounts, transactions, transfers, budgets, analytics, admin, subscriptions, premium
+  scripts/                migrate.js, seed.js, seed-demo.js, make-admin.js, check-env.js
   tests/                  unit tests (npm test)
 src/
   main.jsx, App.jsx       app shell (restores the session on load)

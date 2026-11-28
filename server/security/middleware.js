@@ -4,6 +4,7 @@ import { collections } from "../db.js";
 import { sendError } from "../errors.js";
 import { audit } from "./audit.js";
 import { readSession } from "./sessions.js";
+import { subscriptionState } from "../subscriptions.js";
 
 const SAFE_METHODS = ["GET", "HEAD", "OPTIONS"];
 
@@ -97,6 +98,21 @@ export async function requireAuth(req, res, next) {
   if (!user || user.disabled) return sendError(res, "UNAUTHENTICATED", "Your session has ended. Please log in again.");
   req.session = session;
   req.user = user;
+  next();
+}
+
+/**
+ * Premium routes. Access is read from the subscriptions collection on every request, so an
+ * expired, cancelled (past its end date) or suspended subscription loses premium at once, even
+ * if the browser still shows the premium buttons.
+ */
+export async function requirePremium(req, res, next) {
+  const state = await subscriptionState(req.user._id);
+  if (!state.isPremium) {
+    audit(req, "premium_denied", { level: "warn" });
+    return sendError(res, "PREMIUM_REQUIRED", "This feature needs an active Premium subscription.");
+  }
+  req.subscription = state.subscription;
   next();
 }
 

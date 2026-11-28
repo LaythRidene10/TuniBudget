@@ -54,3 +54,25 @@ export async function request(method, path, { body, query, idempotent = false } 
   }
   return data;
 }
+
+/** Downloads a file (a premium CSV report) with the same session cookie and CSRF header. */
+export async function downloadRequest(path, query) {
+  let response;
+  try {
+    response = await fetch(API_URL + path + queryString(query), {
+      headers: { "X-Requested-With": "TuniBudget" },
+      credentials: "same-origin",
+    });
+  } catch {
+    throw new ServiceError("NETWORK_ERROR", "Cannot reach the server. Check your connection and try again.");
+  }
+  if (!response.ok) {
+    const data = await response.json().catch(() => null);
+    const { code = "SERVER_ERROR", message = "The download failed. Please try again.", ...extra } = (data && data.error) || {};
+    if (code === "UNAUTHENTICATED") onUnauthenticated();
+    throw new ServiceError(code, message, extra);
+  }
+  const disposition = response.headers.get("content-disposition") || "";
+  const match = /filename="([^"]+)"/.exec(disposition);
+  return { blob: await response.blob(), filename: match ? match[1] : "tunibudget-report.csv" };
+}
